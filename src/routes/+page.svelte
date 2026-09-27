@@ -2,136 +2,171 @@
 	import { superForm } from 'sveltekit-superforms';
 	import { enhance as formEnhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
-	import Card from '$lib/components/ui/Card.svelte';
-	import Button from '$lib/components/ui/Button.svelte';
-	import Input from '$lib/components/ui/Input.svelte';
-	import Badge from '$lib/components/ui/Badge.svelte';
+	import { fly } from 'svelte/transition';
+	import { flip } from 'svelte/animate';
+	import { prefersReducedMotion } from 'svelte/motion';
+	import * as Card from '$lib/components/ui/card';
+	import * as Field from '$lib/components/ui/field';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import * as Empty from '$lib/components/ui/empty';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Badge, type BadgeVariant } from '$lib/components/ui/badge';
+	import GradientText from '$lib/components/svelte-bits/GradientText.svelte';
+	import ListTodoIcon from '@lucide/svelte/icons/list-todo';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
+	import PlusIcon from '@lucide/svelte/icons/plus';
 
 	let { data } = $props();
 
-	const { form, errors, enhance, message, submitting } = superForm(data.form, {
+	// svelte-ignore state_referenced_locally
+	const { form, errors, enhance, submitting } = superForm(data.form, {
 		resetForm: true,
 		onUpdated: ({ form }) => {
 			if (form.valid && form.message) toast.success(String(form.message));
 		}
 	});
 
-	type Tone = 'default' | 'run-a' | 'warning' | 'error';
-	function tone(p: number): Tone {
-		if (p >= 4) return 'error';
+	function tone(p: number): BadgeVariant {
+		if (p >= 4) return 'destructive';
 		if (p >= 3) return 'warning';
-		if (p >= 2) return 'run-a';
-		return 'default';
+		if (p >= 2) return 'info';
+		return 'outline';
 	}
+
+	const motionY = $derived(prefersReducedMotion.current ? 0 : 12);
 </script>
 
-<div class="flex flex-col gap-6">
-	<div>
-		<h1 class="text-[28px] font-semibold tracking-tight">Starter</h1>
-		<p class="mt-1 text-[14px] text-ink-muted">
-			SvelteKit full-stack template — app shell, UI primitives, and the Zod &rarr; service pattern
-			wired end to end.
+<div class="flex flex-col gap-10">
+	<section class="flex flex-col gap-3 stagger">
+		<Badge variant="soft" dot pulse class="animate-fade-up">SvelteKit full-stack template</Badge>
+		<h1 class="animate-fade-up text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+			Ship the demo, <GradientText>not the boilerplate.</GradientText>
+		</h1>
+		<p class="max-w-2xl animate-fade-up text-[15px] text-pretty text-muted-foreground">
+			App shell, themed shadcn-svelte components, Svelte Bits effects, and the Zod &rarr; service
+			pattern wired end to end. Try the palette icon in the header to rebrand live.
 		</p>
-	</div>
+	</section>
 
-	<div class="grid gap-6 md:grid-cols-[340px_1fr]">
-		<Card title="New task">
-			<form method="post" action="?/create" use:enhance class="flex flex-col gap-3">
-				<Input
-					label="Title"
-					name="title"
-					bind:value={$form.title}
-					placeholder="Ship the demo"
-					error={$errors.title?.[0]}
-				/>
-				<Input
-					label="Priority (1–5)"
-					name="priority"
-					type="number"
-					min="1"
-					max="5"
-					bind:value={$form.priority}
-					error={$errors.priority?.[0]}
-				/>
-				<div class="flex items-center gap-3">
-					<Button type="submit" disabled={$submitting}>Add task</Button>
-					{#if $message}
-						<span class="font-mono text-[12px] text-success">{$message}</span>
-					{/if}
-				</div>
-			</form>
-		</Card>
+	<div class="grid items-start gap-6 md:grid-cols-[340px_1fr]">
+		<Card.Root class="animate-fade-up [--delay:200ms]">
+			<Card.Header>
+				<Card.Title>New task</Card.Title>
+				<Card.Description>Validated by the same Zod schema on client and server.</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<form method="post" action="?/create" use:enhance>
+					<Field.Group>
+						<Field.Field data-invalid={$errors.title ? true : undefined}>
+							<Field.Label for="title">Title</Field.Label>
+							<Input
+								id="title"
+								name="title"
+								bind:value={$form.title}
+								placeholder="Ship the demo"
+								aria-invalid={$errors.title ? 'true' : undefined}
+							/>
+							<Field.Error errors={$errors.title?.map((message) => ({ message }))} />
+						</Field.Field>
+						<Field.Field data-invalid={$errors.priority ? true : undefined}>
+							<Field.Label for="priority">Priority</Field.Label>
+							<Input
+								id="priority"
+								name="priority"
+								type="number"
+								min="1"
+								max="5"
+								bind:value={$form.priority}
+								aria-invalid={$errors.priority ? 'true' : undefined}
+							/>
+							<Field.Description>1 = someday, 5 = on fire.</Field.Description>
+							<Field.Error errors={$errors.priority?.map((message) => ({ message }))} />
+						</Field.Field>
+						<Button type="submit" loading={$submitting} class="w-full">
+							{#if !$submitting}<PlusIcon data-icon="inline-start" />{/if}
+							Add task
+						</Button>
+					</Field.Group>
+				</form>
+			</Card.Content>
+		</Card.Root>
 
-		<Card title="Tasks">
-			{#snippet actions()}
-				{data.tasks.length} total
-			{/snippet}
-
-			{#if data.tasks.length === 0}
-				<p class="py-8 text-center font-mono text-[12px] text-ink-muted">No tasks yet.</p>
-			{:else}
-				<table class="w-full border-collapse text-left">
-					<thead>
-						<tr
-							class="border-b border-divider font-mono text-[11px] tracking-wider text-ink-muted uppercase"
-						>
-							<th class="py-2 pr-3 font-medium">Title</th>
-							<th class="py-2 pr-3 font-medium">Priority</th>
-							<th class="py-2"></th>
-						</tr>
-					</thead>
-					<tbody>
+		<Card.Root class="animate-fade-up [--delay:280ms]">
+			<Card.Header>
+				<Card.Title>Tasks</Card.Title>
+				<Card.Action>
+					<Badge variant="outline" class="font-mono">{data.tasks.length} total</Badge>
+				</Card.Action>
+			</Card.Header>
+			<Card.Content>
+				{#if data.tasks.length === 0}
+					<Empty.Root class="border border-dashed">
+						<Empty.Header>
+							<Empty.Media variant="icon"><ListTodoIcon /></Empty.Media>
+							<Empty.Title>No tasks yet</Empty.Title>
+							<Empty.Description>Add your first task with the form.</Empty.Description>
+						</Empty.Header>
+					</Empty.Root>
+				{:else}
+					<ul class="flex flex-col divide-y divide-border">
 						{#each data.tasks as task (task.id)}
-							<tr class="border-b border-divider/60">
-								<td class="py-2 pr-3 text-[14px] text-ink">{task.title}</td>
-								<td class="py-2 pr-3"><Badge tone={tone(task.priority)}>P{task.priority}</Badge></td
+							<li
+								class="group flex items-center gap-3 py-2.5"
+								animate:flip={{ duration: 250 }}
+								in:fly={{ y: motionY, duration: 300 }}
+							>
+								<Badge variant={tone(task.priority)} class="w-9 font-mono">P{task.priority}</Badge>
+								<span class="flex-1 truncate text-sm">{task.title}</span>
+								<form
+									id={`delete-${task.id}`}
+									method="post"
+									action="?/delete"
+									use:formEnhance={() => {
+										return async ({ update }) => {
+											await update();
+											toast.success('Task deleted.');
+										};
+									}}
 								>
-								<td class="py-2 text-right">
-									<form
-										id={`delete-${task.id}`}
-										method="post"
-										action="?/delete"
-										use:formEnhance={() => {
-											return async ({ update }) => {
-												await update();
-												toast.success('Task deleted.');
-											};
-										}}
+									<input type="hidden" name="id" value={task.id} />
+								</form>
+								<AlertDialog.Root>
+									<AlertDialog.Trigger
+										class={buttonVariants({
+											variant: 'ghost',
+											size: 'icon-sm',
+											class:
+												'text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100'
+										})}
+										aria-label="Delete task"
 									>
-										<input type="hidden" name="id" value={task.id} />
-									</form>
-									<AlertDialog.Root>
-										<AlertDialog.Trigger
-											class="inline-flex items-center justify-center rounded-control px-3.5 py-2 text-[13px] font-medium text-error transition-colors hover:bg-error/10"
-										>
-											Delete
-										</AlertDialog.Trigger>
-										<AlertDialog.Content>
-											<AlertDialog.Header>
-												<AlertDialog.Title>Delete this task?</AlertDialog.Title>
-												<AlertDialog.Description>
-													“{task.title}” will be permanently removed. This can't be undone.
-												</AlertDialog.Description>
-											</AlertDialog.Header>
-											<AlertDialog.Footer>
-												<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-												<AlertDialog.Action
-													type="submit"
-													form={`delete-${task.id}`}
-													variant="destructive"
-												>
-													Delete
-												</AlertDialog.Action>
-											</AlertDialog.Footer>
-										</AlertDialog.Content>
-									</AlertDialog.Root>
-								</td>
-							</tr>
+										<Trash2Icon />
+									</AlertDialog.Trigger>
+									<AlertDialog.Content>
+										<AlertDialog.Header>
+											<AlertDialog.Title>Delete this task?</AlertDialog.Title>
+											<AlertDialog.Description>
+												“{task.title}” will be permanently removed. This can't be undone.
+											</AlertDialog.Description>
+										</AlertDialog.Header>
+										<AlertDialog.Footer>
+											<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+											<AlertDialog.Action
+												type="submit"
+												form={`delete-${task.id}`}
+												variant="destructive"
+											>
+												Delete
+											</AlertDialog.Action>
+										</AlertDialog.Footer>
+									</AlertDialog.Content>
+								</AlertDialog.Root>
+							</li>
 						{/each}
-					</tbody>
-				</table>
-			{/if}
-		</Card>
+					</ul>
+				{/if}
+			</Card.Content>
+		</Card.Root>
 	</div>
 </div>

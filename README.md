@@ -13,13 +13,15 @@ one deploy. Clone it, rename it, build the actual product on top.
 - **Superforms** — Zod-driven forms: server + client validation, progressive enhancement
 - **adapter-node** — deploy anywhere that runs Node
 
-The visual design lives in `src/routes/layout.css` — edit the `:root` and
-`.dark` palette blocks to restyle the whole app (light and dark). Hand-built
-primitives are in `src/lib/components/ui/` (Button, Input, Card, Badge);
-richer shadcn-svelte components sit alongside them, re-themed to the same tokens.
+The visual design lives in `src/routes/layout.css` — change two hue numbers
+(`--primary-h` 主色, `--secondary-h` 副色) to rebrand the whole app, light and
+dark. **See [DESIGN.md](DESIGN.md)** for tokens, motion utilities and effects;
+see them all live at `/components`.
 
-- **Dark mode** — class-based, toggled in the header (`mode-watcher`); all tokens flip.
-- **shadcn-svelte** — Dialog, Alert Dialog, Dropdown Menu, Select, Sonner (toasts), Tooltip, Tabs, Sheet, Command. See the `/components` page. Add more with `npx shadcn-svelte@latest add <name>`.
+- **Dark mode + brand presets** — header toggles (`mode-watcher`); 7 presets via `setTheme()`, persisted, no flash.
+- **shadcn-svelte** — 28 components in `src/lib/components/ui/`, re-themed; Button/Badge/Card extended with extra variants. Add more with `npx shadcn-svelte@latest add <name>`.
+- **Svelte Bits** — 14 animated effects in `src/lib/components/svelte-bits/` (gradient/rotating/blur text, spotlight & glow cards, Aurora background…), wired to the theme.
+- **Motion** — CSS entrance/stagger/press/hover-lift utilities, `reveal` + `spotlight` attachments, `prefers-reduced-motion` respected.
 
 ## The one rule: everything goes through the service seam
 
@@ -52,10 +54,11 @@ Callers use `complete()` either way, so nothing else changes.
 | Example REST route    | done — GET/POST, auth-gated           | `src/routes/api/tasks/+server.ts`                        |
 | AI seam               | stub — implement when needed          | `src/lib/server/services/ai.ts`                          |
 | Forms                 | done — Superforms + Zod demo          | `src/routes/+page.server.ts`, `src/routes/+page.svelte`  |
-| UI shell + primitives | done — app shell, Button/Input/Card   | `src/routes/+layout.svelte`, `src/lib/components/ui/`    |
-| Design tokens         | done — edit to restyle everything     | `src/routes/layout.css`                                  |
+| UI shell + primitives | done — glass header, mobile drawer    | `src/routes/+layout.svelte`, `src/lib/components/ui/`    |
+| Design tokens         | done — hue-based brand + presets      | `src/routes/layout.css`, `DESIGN.md`                     |
 | Dark mode             | done — header toggle, all tokens flip | `src/routes/layout.css`, `+layout.svelte`                |
-| shadcn-svelte (9)     | done — Dialog/Select/Sheet/Command…   | `src/lib/components/ui/`, `/components` page             |
+| shadcn-svelte (28)    | done — Dialog/Field/Select/Command…   | `src/lib/components/ui/`, `/components` page             |
+| Effects + motion      | done — Svelte Bits, reveal, stagger   | `src/lib/components/svelte-bits/`, `src/lib/attachments/` |
 | Deploy                | done — Dockerfile + adapter notes     | `Dockerfile`, `.dockerignore`, README                    |
 
 ## Add a new resource (the pattern to copy)

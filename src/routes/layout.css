@@ -1,129 +1,438 @@
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/jetbrains-mono';
 @import 'tailwindcss';
+/* Enter/exit animations used by every shadcn-svelte overlay (animate-in, fade-in-0, zoom-in-95…) */
+@import 'tw-animate-css';
 
 /* shadcn-svelte components use class-based dark mode (.dark on <html>). */
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Raw palette — the single source of truth (see DESIGN.md).
- * Edit these two blocks to restyle the entire app, light and dark.
- */
+/* The shadcn-svelte registry styles against `data-open:`, `data-checked:` …,
+ * but bits-ui exposes state as data-state="open" / data-orientation="vertical".
+ * Map them, or overlay animations, checkboxes, switches and tabs lose styling. */
+@custom-variant data-open (&:where([data-state='open'], [data-open]:not([data-open='false'])));
+@custom-variant data-closed (&:where([data-state='closed'], [data-closed]:not([data-closed='false'])));
+@custom-variant data-checked (&:where([data-state='checked'], [data-checked]:not([data-checked='false'])));
+@custom-variant data-unchecked (&:where([data-state='unchecked'], [data-unchecked]:not([data-unchecked='false'])));
+@custom-variant data-active (&:where([data-state='active'], [data-active]:not([data-active='false'])));
+@custom-variant data-horizontal (&:where([data-orientation='horizontal']));
+@custom-variant data-vertical (&:where([data-orientation='vertical']));
+
+/* ============================================================================
+ * 1. BRAND — the only block you need to touch to rebrand (see DESIGN.md).
+ *
+ *    Each brand color is a hue + chroma. Light/dark lightness is fixed below
+ *    so contrast stays sane whichever hue you pick. Want an exact hex from a
+ *    brand book instead? Override --primary / --secondary directly in the
+ *    :root and .dark blocks further down.
+ * ========================================================================== */
 :root {
-	--canvas: #f6f7f9;
-	--surface: #ffffff;
-	--surface-2: #eef0f3;
-	--divider: #d8dce3;
-	--ink: #191b20;
-	--ink-muted: #626873;
+	--primary-h: 35; /* 主色 coral */
+	--primary-c: 0.19;
+	--secondary-h: 268; /* 副色 indigo */
+	--secondary-c: 0.15;
 
-	--primary: #d94f32;
-	--primary-hover: #b93e26;
-	--primary-active: #9e351f;
-	--primary-wash: #fbe9e4;
-	--primary-ink: #ffffff;
+	--radius: 0.75rem; /* base radius; the whole scale is derived from it */
+}
 
-	--success: #16a34a;
-	--warning: #a86400;
-	--error: #b42318;
+/* Presets — switch with <html data-theme="…"> (mode-watcher's setTheme(), used by the header palette menu). */
+[data-theme='violet'] {
+	--primary-h: 292;
+	--primary-c: 0.2;
+	--secondary-h: 200;
+	--secondary-c: 0.13;
+}
+[data-theme='emerald'] {
+	--primary-h: 158;
+	--primary-c: 0.15;
+	--secondary-h: 250;
+	--secondary-c: 0.14;
+}
+[data-theme='ocean'] {
+	--primary-h: 250;
+	--primary-c: 0.18;
+	--secondary-h: 190;
+	--secondary-c: 0.12;
+}
+[data-theme='rose'] {
+	--primary-h: 5;
+	--primary-c: 0.2;
+	--secondary-h: 320;
+	--secondary-c: 0.14;
+}
+[data-theme='amber'] {
+	--primary-h: 62;
+	--primary-c: 0.16;
+	--secondary-h: 25;
+	--secondary-c: 0.16;
+}
+[data-theme='mono'] {
+	--primary-h: 270;
+	--primary-c: 0;
+	--secondary-h: 270;
+	--secondary-c: 0.02;
+}
 
-	--run-a: #4656a6;
-	--run-b: #c65a32;
+/* ============================================================================
+ * 2. SEMANTIC PALETTE — shadcn-svelte token names, so every shadcn and
+ *    Svelte Bits component inherits the theme. Neutrals carry a whisper of the
+ *    primary hue so greys feel on-brand.
+ * ========================================================================== */
+:root {
+	--primary: oklch(0.56 var(--primary-c) var(--primary-h));
+	--primary-foreground: oklch(0.99 0.004 var(--primary-h));
+	--secondary: oklch(0.52 var(--secondary-c) var(--secondary-h));
+	--secondary-foreground: oklch(0.99 0.004 var(--secondary-h));
 
-	--radius: 0.625rem; /* 10px, per DESIGN.md */
+	--background: oklch(0.985 0.003 var(--primary-h));
+	--foreground: oklch(0.21 0.012 var(--primary-h));
+	--card: oklch(1 0 0);
+	--card-foreground: var(--foreground);
+	--popover: oklch(1 0 0);
+	--popover-foreground: var(--foreground);
+	--muted: oklch(0.962 0.005 var(--primary-h));
+	--muted-foreground: oklch(0.5 0.012 var(--primary-h));
+	--accent: oklch(0.952 0.009 var(--primary-h));
+	--accent-foreground: var(--foreground);
+	--border: oklch(0.91 0.006 var(--primary-h));
+	--input: oklch(0.88 0.007 var(--primary-h));
+	--ring: var(--primary);
+
+	--destructive: oklch(0.56 0.21 25);
+	--success: oklch(0.55 0.15 152);
+	--warning: oklch(0.62 0.15 62);
+	--info: oklch(0.55 0.15 245);
+
+	--shadow-color: 0.02 0.01 var(--primary-h);
+	--shadow-strength: 1;
 }
 
 .dark {
-	--canvas: #0f1216;
-	--surface: #171a20;
-	--surface-2: #1f232b;
-	--divider: #2c313b;
-	--ink: #e6e9ef;
-	--ink-muted: #98a0ad;
+	--primary: oklch(0.72 calc(var(--primary-c) * 0.9) var(--primary-h));
+	--primary-foreground: oklch(0.2 0.03 var(--primary-h));
+	--secondary: oklch(0.72 calc(var(--secondary-c) * 0.9) var(--secondary-h));
+	--secondary-foreground: oklch(0.2 0.03 var(--secondary-h));
 
-	--primary: #ff6a48;
-	--primary-hover: #ff8163;
-	--primary-active: #e2573b;
-	--primary-wash: #3b1d15;
-	--primary-ink: #1a0d09;
+	--background: oklch(0.155 0.008 var(--primary-h));
+	--foreground: oklch(0.96 0.005 var(--primary-h));
+	--card: oklch(0.195 0.009 var(--primary-h));
+	--popover: oklch(0.215 0.01 var(--primary-h));
+	--muted: oklch(0.25 0.01 var(--primary-h));
+	--muted-foreground: oklch(0.7 0.012 var(--primary-h));
+	--accent: oklch(0.27 0.012 var(--primary-h));
+	--border: oklch(1 0 0 / 10%);
+	--input: oklch(1 0 0 / 15%);
 
-	--success: #34d399;
-	--warning: #d6a24a;
-	--error: #e56a60;
+	--destructive: oklch(0.68 0.19 22);
+	--success: oklch(0.73 0.16 152);
+	--warning: oklch(0.8 0.14 78);
+	--info: oklch(0.72 0.13 240);
 
-	--run-a: #8593db;
-	--run-b: #e2885f;
+	--shadow-color: 0 0 0;
+	--shadow-strength: 3;
 }
 
-/*
- * Token bindings for Tailwind. `@theme inline` emits utilities that reference
- * the vars above at runtime, so the .dark overrides win without a rebuild.
- */
+/* ============================================================================
+ * 3. TAILWIND BINDINGS — `@theme inline` emits utilities that read the vars
+ *    above at runtime, so .dark / data-theme swaps need no rebuild.
+ * ========================================================================== */
 @theme inline {
-	/* DESIGN.md-named utilities (used by the hand-built primitives) */
-	--color-canvas: var(--canvas);
-	--color-surface: var(--surface);
-	--color-surface-2: var(--surface-2);
-	--color-divider: var(--divider);
-	--color-ink: var(--ink);
-	--color-ink-muted: var(--ink-muted);
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
 	--color-primary: var(--primary);
-	--color-primary-hover: var(--primary-hover);
-	--color-primary-active: var(--primary-active);
-	--color-primary-wash: var(--primary-wash);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: oklch(0.99 0 0);
 	--color-success: var(--success);
 	--color-warning: var(--warning);
-	--color-error: var(--error);
-	--color-run-a: var(--run-a);
-	--color-run-b: var(--run-b);
+	--color-info: var(--info);
 
-	/* shadcn-svelte semantic tokens -> same palette, so shadcn inherits our look */
-	--color-background: var(--canvas);
-	--color-foreground: var(--ink);
-	--color-card: var(--surface);
-	--color-card-foreground: var(--ink);
-	--color-popover: var(--surface);
-	--color-popover-foreground: var(--ink);
-	--color-primary-foreground: var(--primary-ink);
-	--color-secondary: var(--surface-2);
-	--color-secondary-foreground: var(--ink);
-	--color-muted: var(--surface-2);
-	--color-muted-foreground: var(--ink-muted);
-	--color-accent: var(--surface-2);
-	--color-accent-foreground: var(--ink);
-	--color-destructive: var(--error);
-	--color-destructive-foreground: #ffffff;
-	--color-border: var(--divider);
-	--color-input: var(--divider);
-	--color-ring: var(--primary);
+	/* Interaction states, derived — mixing toward the foreground darkens in
+	 * light mode and lightens in dark mode, so one rule serves both. */
+	--color-primary-hover: color-mix(in oklch, var(--primary), var(--foreground) 14%);
+	--color-secondary-hover: color-mix(in oklch, var(--secondary), var(--foreground) 14%);
+	--color-primary-soft: color-mix(in oklch, var(--primary) 12%, transparent);
+	--color-secondary-soft: color-mix(in oklch, var(--secondary) 12%, transparent);
+
+	/* Charts: brand-led series that follow presets */
+	--color-chart-1: var(--primary);
+	--color-chart-2: var(--secondary);
+	--color-chart-3: oklch(0.7 0.12 calc(var(--primary-h) + 60));
+	--color-chart-4: oklch(0.65 0.1 calc(var(--secondary-h) + 60));
+	--color-chart-5: var(--muted-foreground);
 
 	--font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', monospace;
 
-	--radius-card: 10px;
-	--radius-control: 8px;
-	--radius-chip: 6px;
-	--radius-sm: calc(var(--radius) - 4px);
-	--radius-md: calc(var(--radius) - 2px);
+	--radius-sm: calc(var(--radius) * 0.5);
+	--radius-md: calc(var(--radius) * 0.75);
 	--radius-lg: var(--radius);
-	--radius-xl: calc(var(--radius) + 4px);
+	--radius-xl: calc(var(--radius) * 1.33);
+	--radius-2xl: calc(var(--radius) * 1.66);
+	--radius-3xl: calc(var(--radius) * 2);
+	--radius-4xl: calc(var(--radius) * 2.66);
+
+	/* Elevation — layered, hue-tinted, stronger in dark mode */
+	--shadow-xs: 0 1px 2px oklch(var(--shadow-color) / calc(0.05 * var(--shadow-strength)));
+	--shadow-sm:
+		0 1px 2px oklch(var(--shadow-color) / calc(0.05 * var(--shadow-strength))),
+		0 1px 3px oklch(var(--shadow-color) / calc(0.07 * var(--shadow-strength)));
+	--shadow-md:
+		0 2px 4px -1px oklch(var(--shadow-color) / calc(0.05 * var(--shadow-strength))),
+		0 6px 16px -4px oklch(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
+	--shadow-lg:
+		0 4px 8px -2px oklch(var(--shadow-color) / calc(0.05 * var(--shadow-strength))),
+		0 16px 32px -8px oklch(var(--shadow-color) / calc(0.14 * var(--shadow-strength)));
+	--shadow-xl: 0 24px 48px -12px oklch(var(--shadow-color) / calc(0.2 * var(--shadow-strength)));
+	--shadow-glow:
+		0 0 0 1px color-mix(in oklch, var(--primary) 30%, transparent),
+		0 8px 28px -6px color-mix(in oklch, var(--primary) 55%, transparent);
 }
 
+/* ============================================================================
+ * 4. MOTION — easing curves + keyframe animations as Tailwind utilities:
+ *    ease-smooth · ease-spring · ease-snappy
+ *    animate-fade-in · animate-fade-up · animate-scale-in · animate-blur-in
+ *    animate-shimmer · animate-float · animate-gradient · animate-marquee
+ *    animate-pop · animate-shake · animate-ping-slow · animate-spin-slow
+ *    Entrance animations read --delay, e.g. class="animate-fade-up [--delay:200ms]".
+ * ========================================================================== */
+@theme {
+	--ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+	--ease-snappy: cubic-bezier(0.2, 0.9, 0.1, 1);
+
+	--animate-fade-in: fade-in 0.5s var(--ease-smooth) var(--delay, 0ms) both;
+	--animate-fade-up: fade-up 0.6s var(--ease-smooth) var(--delay, 0ms) both;
+	--animate-fade-down: fade-down 0.6s var(--ease-smooth) var(--delay, 0ms) both;
+	--animate-scale-in: scale-in 0.4s var(--ease-spring) var(--delay, 0ms) both;
+	--animate-blur-in: blur-in 0.7s var(--ease-smooth) var(--delay, 0ms) both;
+	--animate-pop: pop 0.35s var(--ease-spring);
+	--animate-shake: shake 0.4s var(--ease-snappy);
+	--animate-shimmer: shimmer 1.6s linear infinite;
+	--animate-float: float 5s ease-in-out infinite;
+	--animate-gradient: gradient-pan 6s ease infinite;
+	--animate-marquee: marquee var(--marquee-duration, 30s) linear infinite;
+	--animate-ping-slow: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+	--animate-spin-slow: spin 8s linear infinite;
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+	@keyframes fade-up {
+		from {
+			opacity: 0;
+			transform: translateY(16px);
+		}
+	}
+	@keyframes fade-down {
+		from {
+			opacity: 0;
+			transform: translateY(-16px);
+		}
+	}
+	@keyframes scale-in {
+		from {
+			opacity: 0;
+			transform: scale(0.92);
+		}
+	}
+	@keyframes blur-in {
+		from {
+			opacity: 0;
+			filter: blur(12px);
+		}
+	}
+	@keyframes pop {
+		50% {
+			transform: scale(1.12);
+		}
+	}
+	@keyframes shake {
+		20%,
+		60% {
+			transform: translateX(-4px);
+		}
+		40%,
+		80% {
+			transform: translateX(4px);
+		}
+	}
+	@keyframes shimmer {
+		from {
+			background-position: 150% 0;
+		}
+		to {
+			background-position: -50% 0;
+		}
+	}
+	@keyframes float {
+		50% {
+			transform: translateY(-8px);
+		}
+	}
+	@keyframes gradient-pan {
+		0%,
+		100% {
+			background-position: 0% 50%;
+		}
+		50% {
+			background-position: 100% 50%;
+		}
+	}
+	@keyframes marquee {
+		to {
+			transform: translateX(-50%);
+		}
+	}
+}
+
+/* ============================================================================
+ * 5. UTILITIES — reusable effects. Compose with normal Tailwind classes.
+ * ========================================================================== */
+
+/* Tactile press: scale down on :active (buttons already have it). */
+@utility press {
+	transition: transform 160ms var(--ease-spring);
+	&:active:not(:disabled, [aria-disabled='true']) {
+		transform: scale(0.97);
+	}
+}
+
+/* Card lift on hover. */
+@utility hover-lift {
+	transition:
+		transform 300ms var(--ease-smooth),
+		box-shadow 300ms var(--ease-smooth),
+		border-color 300ms var(--ease-smooth);
+	&:hover {
+		transform: translateY(-3px);
+		box-shadow: var(--shadow-lg);
+	}
+}
+
+/* Primary → secondary brand gradient. */
+@utility bg-brand-gradient {
+	background-image: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+@utility text-gradient {
+	background-image: linear-gradient(120deg, var(--primary), var(--secondary));
+	background-clip: text;
+	-webkit-background-clip: text;
+	color: transparent;
+}
+
+/* Frosted glass surface (headers, floating toolbars). */
+@utility glass {
+	background-color: color-mix(in oklch, var(--card) 72%, transparent);
+	backdrop-filter: blur(14px) saturate(1.5);
+	-webkit-backdrop-filter: blur(14px) saturate(1.5);
+}
+
+/* Decorative backgrounds; pair with mask-fade to soften the edges. */
+@utility bg-grid {
+	background-image:
+		linear-gradient(to right, var(--border) 1px, transparent 1px),
+		linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+	background-size: var(--grid-size, 40px) var(--grid-size, 40px);
+}
+@utility bg-dots {
+	background-image: radial-gradient(var(--border) 1.2px, transparent 1.2px);
+	background-size: var(--grid-size, 18px) var(--grid-size, 18px);
+}
+@utility mask-fade {
+	mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+/* Shimmering placeholder (Skeleton uses it). */
+@utility shimmer {
+	background-image: linear-gradient(
+		90deg,
+		var(--muted) 25%,
+		color-mix(in oklch, var(--muted), var(--foreground) 6%) 50%,
+		var(--muted) 75%
+	);
+	background-size: 200% 100%;
+	animation: var(--animate-shimmer);
+}
+
+/* Stagger children's entrance: <ul class="stagger"><li class="animate-fade-up">…
+ * Sets --delay per child; tune the step with [--stagger:100ms]. */
+@utility stagger {
+	& > * {
+		--delay: calc(var(--stagger, 70ms) * var(--i, 0));
+	}
+	& > *:nth-child(2) {
+		--i: 1;
+	}
+	& > *:nth-child(3) {
+		--i: 2;
+	}
+	& > *:nth-child(4) {
+		--i: 3;
+	}
+	& > *:nth-child(5) {
+		--i: 4;
+	}
+	& > *:nth-child(6) {
+		--i: 5;
+	}
+	& > *:nth-child(7) {
+		--i: 6;
+	}
+	& > *:nth-child(8) {
+		--i: 7;
+	}
+	& > *:nth-child(9) {
+		--i: 8;
+	}
+	& > *:nth-child(n + 10) {
+		--i: 9;
+	}
+}
+
+/* ============================================================================
+ * 6. BASE
+ * ========================================================================== */
 @layer base {
 	*,
 	::before,
 	::after {
-		border-color: var(--color-divider);
+		border-color: var(--color-border);
 	}
 
 	html {
-		background-color: var(--color-canvas);
-		color: var(--color-ink);
+		background-color: var(--color-background);
+		color: var(--color-foreground);
 		font-family: var(--font-sans);
 		-webkit-font-smoothing: antialiased;
+		text-rendering: optimizeLegibility;
+		color-scheme: light;
+	}
+	html.dark {
+		color-scheme: dark;
 	}
 
-	/* Data plane: tabular numbers everywhere mono is used, per DESIGN.md */
+	::selection {
+		background-color: color-mix(in oklch, var(--primary) 25%, transparent);
+	}
+
+	/* Tabular numbers wherever mono is used (data, metrics, code). */
 	code,
 	kbd,
 	samp,
@@ -134,5 +443,32 @@
 
 	a {
 		color: inherit;
+	}
+
+	/* Scroll-reveal (see $lib/attachments/reveal.ts). */
+	[data-reveal] {
+		transition:
+			opacity 0.7s var(--ease-smooth),
+			transform 0.7s var(--ease-smooth),
+			filter 0.7s var(--ease-smooth);
+		transition-delay: var(--reveal-delay, 0ms);
+	}
+	[data-reveal='hidden'] {
+		opacity: 0;
+		transform: translateY(var(--reveal-y, 24px)) scale(var(--reveal-scale, 1));
+		filter: blur(var(--reveal-blur, 0px));
+	}
+}
+
+/* Respect the OS "reduce motion" setting everywhere. JS-driven effects check
+ * `prefersReducedMotion` from svelte/motion themselves. */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	::before,
+	::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
 	}
 }
